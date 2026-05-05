@@ -1,0 +1,8 @@
+name: amas
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.8
+  - amas>=1.0
+  - numpy

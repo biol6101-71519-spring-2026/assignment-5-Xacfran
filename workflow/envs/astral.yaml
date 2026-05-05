@@ -1,0 +1,7 @@
+name: astral
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - astral-tree>=5.7.8
+  - openjdk>=11

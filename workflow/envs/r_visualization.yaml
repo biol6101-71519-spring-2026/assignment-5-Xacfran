@@ -1,0 +1,13 @@
+name: r_visualization
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - r-ape
+  - r-phangorn       # provides midpoint() used for tree rooting
+  - r-ggplot2
+  - r-patchwork
+  - r-gridextra
+  - bioconductor-ggtree
+  - bioconductor-treeio
