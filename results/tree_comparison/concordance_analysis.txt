@@ -1,0 +1,18 @@
+Bipartition Concordance Analysis
+============================================================
+
+Gene tree concordance with coalescent species tree
+--------------------------------------------------
+Gene                 Shared bipartitions    Reference total
+  RAG1               46/46 (100.0%)
+  RAG2               26/46 (56.5%)
+  CYTB               37/46 (80.4%)
+
+Gene tree concordance with concatenated tree
+--------------------------------------------------
+Gene                 Shared bipartitions    Reference total
+  RAG1               41/46 (89.1%)
+  RAG2               30/46 (65.2%)
+  CYTB               41/46 (89.1%)
+
+Note: bipartition counts exclude the root/trivial bipartitions.

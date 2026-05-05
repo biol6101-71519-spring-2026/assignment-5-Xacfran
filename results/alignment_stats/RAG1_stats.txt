@@ -1,0 +1,2 @@
+Alignment_name	No_of_taxa	Alignment_length	Total_matrix_cells	Undetermined_characters	Missing_percent	No_variable_sites	Proportion_variable_sites	Parsimony_informative_sites	Proportion_parsimony_informative	AT_content	GC_content	A	C	G	T	K	M	R	Y	S	W	B	V	H	D	X	N	O	-	?
+RAG1.aln	24	74831	1795944	1661088	92.491	2802	0.037	672	0.009	0.496	0.504	36754	29490	30788	37821	0	0	1	1	1	0	0	0	0	0	0	5001	0	1656087	0

@@ -1,0 +1,2 @@
+Alignment_name	No_of_taxa	Alignment_length	Total_matrix_cells	Undetermined_characters	Missing_percent	No_variable_sites	Proportion_variable_sites	Parsimony_informative_sites	Proportion_parsimony_informative	AT_content	GC_content	A	C	G	T	K	M	R	Y	S	W	B	V	H	D	X	N	O	-	?
+RAG2.aln	21	8144	171024	101407	59.294	1654	0.203	364	0.045	0.577	0.423	21405	14805	14014	19393	0	0	0	0	0	0	0	0	0	0	0	100	0	101307	0

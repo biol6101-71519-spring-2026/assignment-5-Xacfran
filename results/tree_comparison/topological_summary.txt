@@ -1,0 +1,20 @@
+Topological Summary
+============================================================
+
+RF distances: individual gene trees vs. coalescent species tree
+--------------------------------------------------
+  RAG1: 0
+  RAG2: 34
+  CYTB: 18
+  Mean: 17.33
+
+RF distances: individual gene trees vs. concatenated tree
+--------------------------------------------------
+  RAG1: 10
+  RAG2: 26
+  CYTB: 10
+  Mean: 15.33
+
+RF distance: coalescent vs. concatenated species tree
+--------------------------------------------------
+  RF = 10

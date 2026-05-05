@@ -1,0 +1,14 @@
+Robinson-Foulds (symmetric difference) distances
+============================================================
+Tree A                              Tree B                              RF
+------------------------------------------------------------
+RAG1                                RAG2                                34
+RAG1                                CYTB                                18
+RAG1                                coalescent_species_tree             0
+RAG1                                concatenated_supermatrix            10
+RAG2                                CYTB                                28
+RAG2                                coalescent_species_tree             34
+RAG2                                concatenated_supermatrix            26
+CYTB                                coalescent_species_tree             18
+CYTB                                concatenated_supermatrix            10
+coalescent_species_tree             concatenated_supermatrix            10
