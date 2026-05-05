@@ -1,8 +1,281 @@
 # Load configuration
-configfile: 'config/config.yaml'
+configfile: "config/config.yaml"
 
+GENES = config["genes"]
 
 # Rule all: define the final outputs of the workflow
 rule all:
     input:
-        # Define all final output files here
+        # Alignments and stats
+        expand("results/alignments/raw/{gene}.aln", gene=GENES),
+        expand("results/alignments/trimmed/{gene}.trimmed.aln", gene=GENES),
+        expand("results/alignment_stats/{gene}_stats.txt", gene=GENES),
+        "results/alignment_stats/summary_report.txt",
+        # Model selection
+        expand("results/model_selection/{gene}.model", gene=GENES),
+        "results/model_selection/best_models_summary.txt",
+        # Individual gene trees and coalescent species tree
+        expand("results/trees/individual/{gene}.treefile", gene=GENES),
+        expand("results/trees/individual/{gene}.contree", gene=GENES),
+        expand("results/trees/individual/{gene}.log", gene=GENES),
+        "results/trees/coalescent/species_tree.treefile",
+        # Supermatrix / concatenation
+        "results/concatenated/concatenated.aln",
+        "results/concatenated/partition_info.txt",
+        "results/trees/concatenated/concatenated.treefile",
+        "results/trees/concatenated/concatenated.support",
+        # Tree comparison
+        "results/tree_comparison/robinson_foulds_distances.txt",
+        "results/tree_comparison/topological_summary.txt",
+        "results/tree_comparison/concordance_analysis.txt",
+        # Visualizations (placeholder)
+        expand("results/visualizations/{gene}_tree.pdf", gene=GENES),
+        "results/visualizations/coalescent_tree.pdf",
+        "results/visualizations/concatenated_tree.pdf",
+        "results/visualizations/method_comparison.pdf",
+        # Report (placeholder)
+        "results/report/phylogenetic_analysis_report.html",
+
+
+
+# Multiple sequence alignment with MAFFT
+rule align:
+    input:
+        "data/{gene}.fasta",
+    output:
+        "results/alignments/raw/{gene}.aln",
+    conda:
+        "envs/mafft.yaml"
+    log:
+        "logs/align/{gene}.log",
+    threads: config["mafft"]["threads"]
+    shell:
+        "mafft {config[mafft][algorithm]} --thread {threads} {input} > {output} 2> {log}"
+
+
+# Alignment statistics AMAS
+rule alignment_stats:
+    input:
+        "results/alignments/raw/{gene}.aln",
+    output:
+        "results/alignment_stats/{gene}_stats.txt",
+    conda:
+        "envs/amas.yaml"
+    log:
+        "logs/alignment_stats/{gene}.log",
+    shell:
+        "AMAS.py summary -f fasta -d dna -i {input} -o {output} 2> {log}"
+
+
+# Trim alignments trimAl
+rule trim_alignment:
+    input:
+        "results/alignments/raw/{gene}.aln",
+    output:
+        "results/alignments/trimmed/{gene}.trimmed.aln",
+    conda:
+        "envs/trimal.yaml"
+    log:
+        "logs/trim/{gene}.log",
+    shell:
+        "trimal -in {input} -out {output} {config[trimal][method]} 2> {log}"
+
+
+# Combine per-gene stats into a report
+rule alignment_summary_report:
+    input:
+        expand("results/alignment_stats/{gene}_stats.txt", gene=GENES),
+    output:
+        "results/alignment_stats/summary_report.txt",
+    shell:
+        "for f in {input}; do cat \"$f\"; echo; done > {output}"
+
+
+# Evolutionary model selection with IQ-TREE ModelFinder
+rule model_selection:
+    input:
+        "results/alignments/trimmed/{gene}.trimmed.aln",
+    output:
+        model="results/model_selection/{gene}.model",
+        iqtree_report="results/model_selection/{gene}.iqtree",
+    conda:
+        "envs/iqtree.yaml"
+    log:
+        "logs/model_selection/{gene}.log",
+    threads: config["iqtree"]["threads"]
+    shell:
+        """
+        iqtree -s {input} \
+            -m MF \
+            --prefix results/model_selection/{wildcards.gene} \
+            -T {threads} \
+            --redo 2> {log}
+        grep "Best-fit model" results/model_selection/{wildcards.gene}.iqtree \
+            | sed 's/.*: *//' | awk '{{print $1}}' > {output.model}
+        """
+
+
+rule summarize_models:
+    input:
+        models=expand("results/model_selection/{gene}.model", gene=GENES),
+        reports=expand("results/model_selection/{gene}.iqtree", gene=GENES),
+    output:
+        "results/model_selection/best_models_summary.txt",
+    script:
+        "scripts/summarize_models.py"
+
+
+# Per-gene ML trees with bootstrap IQ-TREE
+rule gene_tree:
+    input:
+        aln="results/alignments/trimmed/{gene}.trimmed.aln",
+        model="results/model_selection/{gene}.model",
+    output:
+        treefile="results/trees/individual/{gene}.treefile",
+        contree="results/trees/individual/{gene}.contree",
+        log="results/trees/individual/{gene}.log",
+    conda:
+        "envs/iqtree.yaml"
+    log:
+        "logs/gene_tree/{gene}.log",
+    threads: config["iqtree"]["threads"]
+    shell:
+        """
+        MODEL=$(cat {input.model})
+        iqtree -s {input.aln} \
+            -m "$MODEL" \
+            -b {config[iqtree][bootstrap]} \
+            -o {config[outgroup]} \
+            --prefix results/trees/individual/{wildcards.gene} \
+            -T {threads} \
+            --redo 2> {log}
+        """
+
+
+# Collect gene trees and run ASTRAL coalescent species tree
+rule collect_gene_trees:
+    input:
+        expand("results/trees/individual/{gene}.treefile", gene=GENES),
+    output:
+        "results/trees/coalescent/all_gene_trees.tre",
+    shell:
+        "cat {input} > {output}"
+
+
+rule coalescent_tree:
+    input:
+        "results/trees/coalescent/all_gene_trees.tre",
+    output:
+        "results/trees/coalescent/species_tree.treefile",
+    conda:
+        "envs/astral.yaml"
+    log:
+        "logs/coalescent_tree.log",
+    shell:
+        "astral -i {input} -o {output} 2> {log}"
+
+
+# Concatenate trimmed alignments into supermatrix with AMAS
+rule concatenate_alignments:
+    input:
+        expand("results/alignments/trimmed/{gene}.trimmed.aln", gene=GENES),
+    output:
+        aln="results/concatenated/concatenated.aln",
+        partition="results/concatenated/partition_info.txt",
+    conda:
+        "envs/amas.yaml"
+    log:
+        "logs/concatenate.log",
+    shell:
+        """
+        AMAS.py concat \
+            -i {input} \
+            -f fasta -d dna \
+            -u fasta \
+            -t {output.aln} \
+            -p {output.partition} 2> {log}
+        """
+
+
+# ML tree from supermatrix with partition model - IQ-TREE
+rule concatenated_tree:
+    input:
+        aln="results/concatenated/concatenated.aln",
+        partition="results/concatenated/partition_info.txt",
+    output:
+        treefile="results/trees/concatenated/concatenated.treefile",
+        support="results/trees/concatenated/concatenated.support",
+    conda:
+        "envs/iqtree.yaml"
+    log:
+        "logs/concatenated_tree.log",
+    threads: config["iqtree_concat"]["threads"]
+    shell:
+        """
+        # Reformatting from AMAS "p1_RAG1 = 1-2724" to "DNA, RAG1 = 1-2724" for IQTREE-RAXML
+        sed 's/^p[0-9]*_/DNA, /' {input.partition} \
+            > results/concatenated/partition_raxml.txt
+        iqtree -s {input.aln} \
+            -p results/concatenated/partition_raxml.txt \
+            -m TEST \
+            -b {config[iqtree_concat][bootstrap]} \
+            -o {config[outgroup]} \
+            --prefix results/trees/concatenated/concatenated \
+            -T {threads} \
+            --redo 2> {log}
+        cp results/trees/concatenated/concatenated.contree {output.support}
+        """
+
+
+# Tree comparison
+rule tree_comparison:
+    input:
+        coalescent="results/trees/coalescent/species_tree.treefile",
+        concatenated="results/trees/concatenated/concatenated.treefile",
+        gene_trees=expand("results/trees/individual/{gene}.treefile", gene=GENES),
+    output:
+        rf="results/tree_comparison/robinson_foulds_distances.txt",
+        topo="results/tree_comparison/topological_summary.txt",
+        concordance="results/tree_comparison/concordance_analysis.txt",
+    conda:
+        "envs/python_analysis.yaml"
+    script:
+        "scripts/tree_comparison.py"
+
+
+# Tree visualization
+rule visualize_trees:
+    input:
+        coalescent="results/trees/coalescent/species_tree.treefile",
+        concatenated="results/trees/concatenated/concatenated.treefile",
+        gene_trees=expand("results/trees/individual/{gene}.treefile", gene=GENES),
+        gene_contrees=expand("results/trees/individual/{gene}.contree", gene=GENES),
+    output:
+        gene_pdfs=expand("results/visualizations/{gene}_tree.pdf", gene=GENES),
+        coalescent_pdf="results/visualizations/coalescent_tree.pdf",
+        concat_pdf="results/visualizations/concatenated_tree.pdf",
+        comparison_pdf="results/visualizations/method_comparison.pdf",
+    params:
+        outgroup=config["outgroup"],
+    conda:
+        "envs/r_visualization.yaml"
+    script:
+        "scripts/visualize_trees.R"
+
+
+# Report generation
+rule generate_report:
+    input:
+        rf="results/tree_comparison/robinson_foulds_distances.txt",
+        topo="results/tree_comparison/topological_summary.txt",
+        concordance="results/tree_comparison/concordance_analysis.txt",
+        gene_pdfs=expand("results/visualizations/{gene}_tree.pdf", gene=GENES),
+        coalescent_pdf="results/visualizations/coalescent_tree.pdf",
+        concat_pdf="results/visualizations/concatenated_tree.pdf",
+        comparison_pdf="results/visualizations/method_comparison.pdf",
+        summary="results/alignment_stats/summary_report.txt",
+        models="results/model_selection/best_models_summary.txt",
+    output:
+        "results/report/phylogenetic_analysis_report.html",
+    script:
+        "scripts/generate_report.py"

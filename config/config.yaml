@@ -1,22 +1,36 @@
 # Configuration file for Assignment 5: Phylogenetic Analysis Pipeline
-# 
+#
 # Fill in the parameters below for your analysis
-# 
+#
 # Recommended configuration structure:
-#
-# genes:
-#   - gene1
-#   - gene2
-#   - gene3
-#
-# input_dir: "path/to/your/fasta/files"
-#
-# alignment:
-#   method: "auto"  # MAFFT alignment method
-#   trim_method: "automated1"  # trimAl method
-#
-# phylogeny:
-#   bootstrap: 1000
-#   threads: 4
-#
-# Add additional parameters as needed for your workflow
+
+# gene names
+genes:
+  - RAG1
+  - RAG2
+  - CYTB
+
+# Outgroup. MUST match the sequence name exactly as it appears in the FASTA files!!!!!
+outgroup: "GCF_009914755.1__Homo_sapiens"
+
+# where data resides
+data_dir: "data"
+
+# MAFFT alignment parameters
+mafft:
+  algorithm: "--auto"
+  threads: 4
+
+# trimAl trimming parameters
+trimal:
+  method: "-automated1"
+
+# IQ-TREE parameters
+iqtree:
+  bootstrap: 100
+  threads: 4
+
+# Concatenated tree parameters
+iqtree_concat:
+  bootstrap: 100
+  threads: 4
